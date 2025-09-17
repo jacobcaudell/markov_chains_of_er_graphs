@@ -6,8 +6,8 @@ on sequences of Erdős-Rényi graphs with noisy permutations.
 """
 
 __version__ = "1.0.0"
-__author__ = "Your Name"
-__email__ = "your.email@example.com"
+__author__ = "Jacob Caudell"
+__email__ = "jacob.caudell@example.com"
 
 from .greedy_reorder_mc import run_mc, greedy_reconstruct
 from .compare_modes import run_comparison

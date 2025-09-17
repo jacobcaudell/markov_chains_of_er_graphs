@@ -68,7 +68,7 @@ Distance computation varies by mode:
 @software{markov_chain_er_graphs,
   title={Markov Chain of ER Graphs - Greedy Reordering},
   author={Jacob Caudell},
-  year={2024},
+  year={2025},
   url={https://github.com/jacobcaudell/markov_chains_of_er_graphs}
 }
 ```

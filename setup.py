@@ -19,12 +19,12 @@ def read_requirements():
 setup(
     name="markov-chain-er-graphs",
     version="1.0.0",
-    author="Your Name",
-    author_email="your.email@example.com",
+    author="Jacob Caudell",
+    author_email="jacob.caudell@example.com",
     description="Greedy reconstruction algorithms for sequences of Erdős-Rényi graphs with noisy permutations",
     long_description=read_readme(),
     long_description_content_type="text/markdown",
-    url="https://github.com/yourusername/markov-chain-of-er-graphs",
+    url="https://github.com/jacobcaudell/markov_chains_of_er_graphs",
     packages=find_packages(),
     classifiers=[
         "Development Status :: 4 - Beta",
@@ -51,8 +51,8 @@ setup(
     },
     keywords="graph-theory, markov-chains, greedy-algorithms, pytorch, monte-carlo",
     project_urls={
-        "Bug Reports": "https://github.com/yourusername/markov-chain-of-er-graphs/issues",
-        "Source": "https://github.com/yourusername/markov-chain-of-er-graphs",
-        "Documentation": "https://github.com/yourusername/markov-chain-of-er-graphs#readme",
+        "Bug Reports": "https://github.com/jacobcaudell/markov_chains_of_er_graphs/issues",
+        "Source": "https://github.com/jacobcaudell/markov_chains_of_er_graphs",
+        "Documentation": "https://github.com/jacobcaudell/markov_chains_of_er_graphs#readme",
     },
 )
