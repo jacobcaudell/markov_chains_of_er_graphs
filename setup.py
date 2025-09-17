@@ -47,6 +47,7 @@ setup(
             "compare-modes=src.compare_modes:main", 
             "debug-trial=src.debug_trial:main",
             "analyze-results=src.analyze_debug:main",
+            "recompute-ci=src.recompute_ci:main",
         ],
     },
     keywords="graph-theory, markov-chains, greedy-algorithms, pytorch, monte-carlo",
