@@ -23,6 +23,13 @@ logger = logging.getLogger(__name__)
 
 # ----------------------------- Utilities -----------------------------
 
+def first_error_index(order: List[int]) -> int:
+    """Calculate the index of the first error in the reconstructed order."""
+    for i in range(len(order)):
+        if order[i] != i:
+            return i
+    return len(order)  # No errors found
+
 def bootstrap_confidence_interval(data: List[float], n_bootstrap: int = 1000, 
                                 ci_level: float = 0.95) -> Tuple[float, float]:
     """Calculate bootstrap confidence interval for a list of values."""
@@ -52,6 +59,7 @@ def run_trials_for_eps(trials: int, trial_func, eps: float, dist_mode: str, verb
     stepwise_trials = []
     kendall_trials = []
     eval_trials = []
+    first_error_trials = []
     
     t0 = time.time()
     
@@ -63,6 +71,7 @@ def run_trials_for_eps(trials: int, trial_func, eps: float, dist_mode: str, verb
         stepwise_trials.append(stepwise_accuracy(order))
         kendall_trials.append(kendall_tau(order))
         eval_trials.append(float(evals))
+        first_error_trials.append(float(first_error_index(order)))
         
         if verbose and (trial + 1) % max(1, trials // 10) == 0:
             logger.info(f"Dist={dist_mode}, Eps={eps:.1f}, Trial {trial+1}/{trials}")
@@ -74,12 +83,14 @@ def run_trials_for_eps(trials: int, trial_func, eps: float, dist_mode: str, verb
     mean_stepwise = np.mean(stepwise_trials)
     mean_kendall = np.mean(kendall_trials)
     mean_evals = np.mean(eval_trials)
+    mean_first_error = np.mean(first_error_trials)
     
     # Calculate confidence intervals
     success_ci = bootstrap_confidence_interval(success_trials, ci_level=ci_level)
     stepwise_ci = bootstrap_confidence_interval(stepwise_trials, ci_level=ci_level)
     kendall_ci = bootstrap_confidence_interval(kendall_trials, ci_level=ci_level)
     evals_ci = bootstrap_confidence_interval(eval_trials, ci_level=ci_level)
+    first_error_ci = bootstrap_confidence_interval(first_error_trials, ci_level=ci_level)
     
     return {
         "dist_mode": dist_mode,
@@ -108,12 +119,19 @@ def run_trials_for_eps(trials: int, trial_func, eps: float, dist_mode: str, verb
             "ci_upper": evals_ci[1],
             "ci_level": ci_level
         },
+        "first_error_index": {
+            "mean": mean_first_error,
+            "ci_lower": first_error_ci[0],
+            "ci_upper": first_error_ci[1],
+            "ci_level": ci_level
+        },
         # Raw trial data for post-processing
         "raw_trial_data": {
             "success_trials": success_trials,
             "stepwise_trials": stepwise_trials,
             "kendall_trials": kendall_trials,
-            "eval_trials": eval_trials
+            "eval_trials": eval_trials,
+            "first_error_trials": first_error_trials
         },
         "sec": dt,
         "sec_per_trial": dt / trials,
@@ -467,10 +485,12 @@ def run_mc(n: int = 100, T: int = 10, p0: float = 0.8, q01: float = 0.06, q10: f
             success = stats['full_order_success_rate']
             stepwise = stats['stepwise_accuracy']
             kendall = stats['kendall_tau']
+            first_error = stats['first_error_index']
             logger.info(f"Dist={dist_mode}, Eps={eps:.1f}: Success={success['mean']:.3f} "
                        f"[{success['ci_lower']:.3f}, {success['ci_upper']:.3f}], "
                        f"StepAcc={stepwise['mean']:.3f} [{stepwise['ci_lower']:.3f}, {stepwise['ci_upper']:.3f}], "
                        f"Kendall={kendall['mean']:.3f} [{kendall['ci_lower']:.3f}, {kendall['ci_upper']:.3f}], "
+                       f"FirstErr={first_error['mean']:.1f} [{first_error['ci_lower']:.1f}, {first_error['ci_upper']:.1f}], "
                        f"Time={stats['sec_per_trial']:.3f}s/trial")
     
     if save_state:

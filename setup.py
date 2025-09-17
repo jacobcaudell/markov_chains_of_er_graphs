@@ -48,6 +48,8 @@ setup(
             "debug-trial=src.debug_trial:main",
             "analyze-results=src.analyze_debug:main",
             "recompute-ci=src.recompute_ci:main",
+            "plot-results=src.plot_results:main",
+            "generate-heatmap-data=src.generate_heatmap_data:main",
         ],
     },
     keywords="graph-theory, markov-chains, greedy-algorithms, pytorch, monte-carlo",
