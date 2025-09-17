@@ -60,6 +60,31 @@ python src/analyze_debug.py results.json
 
 # Recompute confidence intervals with different levels
 python src/recompute_ci.py results.json --ci-level 0.90 --summary
+
+# Generate and plot heatmaps
+python src/generate_heatmap_data.py --type eps_vs_n --n-range 100 500 --eps-range 0.0 0.8 --trials 20
+python src/plot_results.py heatmap_data.json --metric success_rate --output eps_analysis
+
+# Create T vs p heatmap
+python src/generate_t_p_heatmap.py --n 200 --T-range 10 30 --p-range 0.6 0.9 --trials 15
+python src/plot_t_p_heatmap.py t_p_heatmap_data.json --metric kendall_tau --output t_p_analysis
+```
+
+### Console Scripts
+
+After installation, use these convenient commands:
+
+```bash
+# Core simulation tools
+greedy-reorder-mc --n 100 --T 10 --trials 50
+compare-modes --n 100 --T 10 --trials 50
+debug-trial --n 50 --T 8 --dist noisy --eps 0.2
+analyze-results results.json
+recompute-ci results.json --ci-level 0.90
+
+# Visualization tools
+plot-results results.json --metric success_rate
+generate-heatmap-data --type eps_vs_n --n-range 100 500
 ```
 
 ### Programmatic API
@@ -155,6 +180,45 @@ python src/recompute_ci.py results.json --ci-level 0.99 --output results_99ci.js
 - **Custom analysis** - Access individual trial results for your own analysis
 - **Research ready** - Complete data preservation for publication
 
+## Visualization
+
+The package includes comprehensive plotting tools for analyzing simulation results:
+
+### Heatmap Generation
+
+```bash
+# Generate data for parameter sweeps
+python src/generate_heatmap_data.py --type eps_vs_n --n-range 100 1000 --eps-range 0.0 1.0 --trials 20
+
+# Create T vs p heatmap
+python src/generate_t_p_heatmap.py --n 200 --T-range 10 50 --p-range 0.5 0.9 --trials 20
+
+# Plot results with various metrics
+python src/plot_results.py results.json --metric success_rate --output analysis
+python src/plot_t_p_heatmap.py t_p_heatmap_data.json --metric kendall_tau
+```
+
+### Available Plot Types
+
+- **Epsilon vs Graph Size**: Performance across noise levels and graph sizes
+- **Distance Mode Comparison**: Compare noisy, Hamming, and edge count modes
+- **T vs p Heatmaps**: Sequence length vs initial edge probability
+- **First Error Analysis**: When reconstruction fails with theoretical bounds
+
+### Plot Customization
+
+All plots use Times New Roman font and smaller default sizes [[memory:8169002]]. Customize with:
+
+```bash
+# High-resolution output
+python src/plot_results.py results.json --dpi 600 --output publication_fig
+
+# Different metrics
+python src/plot_results.py results.json --metric stepwise_accuracy
+python src/plot_results.py results.json --metric kendall_tau
+python src/plot_results.py results.json --metric first_error_index
+```
+
 ## Project Structure
 
 ```
@@ -162,7 +226,11 @@ python src/recompute_ci.py results.json --ci-level 0.99 --output results_99ci.js
 │   ├── greedy_reorder_mc.py    # Core simulation driver
 │   ├── compare_modes.py        # Multi-mode comparison
 │   ├── debug_trial.py          # Single trial debugging
-│   └── analyze_debug.py        # Results analysis
+│   ├── analyze_debug.py        # Results analysis
+│   ├── plot_results.py         # Heatmap and visualization tools
+│   ├── plot_t_p_heatmap.py     # T vs p heatmap plotting
+│   ├── generate_heatmap_data.py # Parameter sweep data generation
+│   └── generate_t_p_heatmap.py # T vs p heatmap data generation
 ├── docs/                   # Documentation
 ├── examples/               # Usage examples
 └── tests/                  # Test suite
@@ -173,6 +241,8 @@ python src/recompute_ci.py results.json --ci-level 0.99 --output results_99ci.js
 - Python 3.8+
 - PyTorch 2.0+
 - NumPy
+- Matplotlib 3.5+
+- Seaborn 0.11+
 
 ## Citation
 
