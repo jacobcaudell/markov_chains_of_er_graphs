@@ -1,0 +1,27 @@
+name: Test
+on: [push, pull_request]
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: [3.8, 3.9, 3.10, 3.11]
+    steps:
+    - uses: actions/checkout@v3
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v3
+      with:
+        python-version: ${{ matrix.python-version }}
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+    - name: Test basic functionality
+      run: |
+        python src/greedy_reorder_mc.py --n 20 --T 5 --trials 3 --quiet
+        python src/compare_modes.py --n 20 --T 5 --trials 3 --quiet
+        python src/debug_trial.py --n 20 --T 5 --quiet
+    - name: Test package installation
+      run: |
+        pip install -e .
+        python -c "from src import run_mc; print('Package import successful')"
