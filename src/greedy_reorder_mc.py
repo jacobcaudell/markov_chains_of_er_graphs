@@ -108,6 +108,13 @@ def run_trials_for_eps(trials: int, trial_func, eps: float, dist_mode: str, verb
             "ci_upper": evals_ci[1],
             "ci_level": ci_level
         },
+        # Raw trial data for post-processing
+        "raw_trial_data": {
+            "success_trials": success_trials,
+            "stepwise_trials": stepwise_trials,
+            "kendall_trials": kendall_trials,
+            "eval_trials": eval_trials
+        },
         "sec": dt,
         "sec_per_trial": dt / trials,
         "memory_usage_mb": memory_usage_mb(),
