@@ -57,6 +57,9 @@ python src/debug_trial.py --n 50 --T 8 --dist noisy --eps 0.2
 
 # Analyze results from JSON output
 python src/analyze_debug.py results.json
+
+# Recompute confidence intervals with different levels
+python src/recompute_ci.py results.json --ci-level 0.90 --summary
 ```
 
 ### Programmatic API
@@ -120,6 +123,37 @@ Success=0.750 [0.620, 0.860], StepAcc=0.820 [0.780, 0.860], Kendall=0.450 [0.380
 - **Stepwise Accuracy**: Average fraction of correct pairwise orderings
 - **Kendall's Tau**: Rank correlation with true ordering
 - **Candidate Evaluations**: Average number of distance computations
+
+### Raw Trial Data & Post-Processing
+
+All simulations save **individual trial data** for flexible post-processing:
+
+```bash
+# Save raw trial data to JSON
+python src/greedy_reorder_mc.py --n 100 --T 500 --trials 50 --output results.json
+
+# Recompute confidence intervals with different levels
+python src/recompute_ci.py results.json --ci-level 0.90 --summary
+python src/recompute_ci.py results.json --ci-level 0.99 --output results_99ci.json
+```
+
+**Raw Data Structure:**
+```json
+{
+  "raw_trial_data": {
+    "success_trials": [1.0, 1.0, 0.0, 1.0, ...],
+    "stepwise_trials": [0.8, 0.9, 0.7, 0.85, ...],
+    "kendall_trials": [0.6, 0.8, 0.4, 0.7, ...],
+    "eval_trials": [150, 200, 180, 160, ...]
+  }
+}
+```
+
+**Benefits:**
+- **No re-computation** - Run expensive simulations once, analyze many times
+- **Flexible confidence levels** - 90%, 95%, 99% without re-running
+- **Custom analysis** - Access individual trial results for your own analysis
+- **Research ready** - Complete data preservation for publication
 
 ## Project Structure
 
