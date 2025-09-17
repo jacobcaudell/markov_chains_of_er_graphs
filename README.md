@@ -14,7 +14,7 @@ git clone https://github.com/jacobcaudell/markov_chains_of_er_graphs.git
 cd markov_chains_of_er_graphs
 pip install -r requirements.txt
 
-# Run basic simulation
+# Run basic simulation with confidence intervals
 python src/greedy_reorder_mc.py --n 100 --T 10 --trials 50
 
 # Compare all distance modes
@@ -43,8 +43,11 @@ Given a sequence of graphs `G₀, G₁, ..., Gₜ` that evolve according to a Ma
 ### Command Line Tools
 
 ```bash
-# Basic simulation with different parameters
+# Basic simulation with confidence intervals
 python src/greedy_reorder_mc.py --n 100 --T 10 --trials 50 --dist noisy --eps 0.2
+
+# Custom confidence level (90% instead of default 95%)
+python src/greedy_reorder_mc.py --n 100 --T 10 --trials 50 --ci-level 0.90
 
 # Compare all distance modes on same trials
 python src/compare_modes.py --n 100 --T 10 --trials 50
@@ -77,6 +80,46 @@ debug_info = run_debug_trial(n=50, T=8, dist_mode="noisy", eps=0.2)
 - **Memory Optimization**: Bit-packing reduces memory usage by ~8x for large graphs
 - **Compilation**: Use `--compile` for additional speedup with `torch.compile`
 - **Batch Processing**: Efficient tensor operations for multiple trials
+
+## Statistical Analysis
+
+### Confidence Intervals
+
+All Monte Carlo simulations include **bootstrap confidence intervals** for robust statistical analysis:
+
+```bash
+# 95% confidence intervals (default)
+python src/greedy_reorder_mc.py --n 100 --T 10 --trials 50
+
+# 90% confidence intervals
+python src/greedy_reorder_mc.py --n 100 --T 10 --trials 50 --ci-level 0.90
+
+# 99% confidence intervals  
+python src/greedy_reorder_mc.py --n 100 --T 10 --trials 50 --ci-level 0.99
+```
+
+**Output Format:**
+```
+Success=0.750 [0.620, 0.860], StepAcc=0.820 [0.780, 0.860], Kendall=0.450 [0.380, 0.520]
+```
+
+**JSON Structure:**
+```json
+{
+  "full_order_success_rate": {
+    "mean": 0.75,
+    "ci_lower": 0.62,
+    "ci_upper": 0.86,
+    "ci_level": 0.95
+  }
+}
+```
+
+**Metrics with Confidence Intervals:**
+- **Success Rate**: Fraction of trials with perfect reconstruction
+- **Stepwise Accuracy**: Average fraction of correct pairwise orderings
+- **Kendall's Tau**: Rank correlation with true ordering
+- **Candidate Evaluations**: Average number of distance computations
 
 ## Project Structure
 

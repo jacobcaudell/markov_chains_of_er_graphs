@@ -10,6 +10,7 @@ import warnings
 from typing import List, Tuple, Optional, Dict, Any
 import torch
 import torch.nn.functional as F
+import numpy as np
 
 # ----------------------------- Configuration -----------------------------
 
@@ -22,32 +23,95 @@ logger = logging.getLogger(__name__)
 
 # ----------------------------- Utilities -----------------------------
 
-def run_trials_for_eps(trials: int, trial_func, eps: float, dist_mode: str, verbose: bool) -> Dict[str, Any]:
-    """Run trials for a single epsilon value and collect statistics."""
-    ok = step_acc_sum = kendall_sum = total_evals = 0
+def bootstrap_confidence_interval(data: List[float], n_bootstrap: int = 1000, 
+                                ci_level: float = 0.95) -> Tuple[float, float]:
+    """Calculate bootstrap confidence interval for a list of values."""
+    if len(data) < 2:
+        return float(data[0]) if data else 0.0, float(data[0]) if data else 0.0
+    
+    data_array = np.array(data)
+    bootstrap_means = []
+    
+    for _ in range(n_bootstrap):
+        # Resample with replacement
+        resample = np.random.choice(data_array, size=len(data_array), replace=True)
+        bootstrap_means.append(np.mean(resample))
+    
+    # Calculate confidence interval bounds
+    alpha = 1 - ci_level
+    lower = np.percentile(bootstrap_means, 100 * alpha / 2)
+    upper = np.percentile(bootstrap_means, 100 * (1 - alpha / 2))
+    
+    return float(lower), float(upper)
+
+def run_trials_for_eps(trials: int, trial_func, eps: float, dist_mode: str, verbose: bool, 
+                      ci_level: float = 0.95) -> Dict[str, Any]:
+    """Run trials for a single epsilon value and collect statistics with confidence intervals."""
+    # Collect individual trial data for CI calculation
+    success_trials = []
+    stepwise_trials = []
+    kendall_trials = []
+    eval_trials = []
+    
     t0 = time.time()
     
     for trial in range(trials):
         order, evals = trial_func()
-        ok += int(full_order_success(order))
-        step_acc_sum += stepwise_accuracy(order)
-        kendall_sum += kendall_tau(order)
-        total_evals += evals
+        
+        # Collect individual trial results
+        success_trials.append(float(full_order_success(order)))
+        stepwise_trials.append(stepwise_accuracy(order))
+        kendall_trials.append(kendall_tau(order))
+        eval_trials.append(float(evals))
         
         if verbose and (trial + 1) % max(1, trials // 10) == 0:
             logger.info(f"Dist={dist_mode}, Eps={eps:.1f}, Trial {trial+1}/{trials}")
     
     dt = time.time() - t0
+    
+    # Calculate means
+    mean_success = np.mean(success_trials)
+    mean_stepwise = np.mean(stepwise_trials)
+    mean_kendall = np.mean(kendall_trials)
+    mean_evals = np.mean(eval_trials)
+    
+    # Calculate confidence intervals
+    success_ci = bootstrap_confidence_interval(success_trials, ci_level=ci_level)
+    stepwise_ci = bootstrap_confidence_interval(stepwise_trials, ci_level=ci_level)
+    kendall_ci = bootstrap_confidence_interval(kendall_trials, ci_level=ci_level)
+    evals_ci = bootstrap_confidence_interval(eval_trials, ci_level=ci_level)
+    
     return {
         "dist_mode": dist_mode,
         "eps": float(eps),
-        "full_order_success_rate": ok / trials,
-        "mean_stepwise_accuracy": step_acc_sum / trials,
-        "mean_kendall_tau": kendall_sum / trials,
-        "avg_candidate_evals": total_evals / trials,
+        "full_order_success_rate": {
+            "mean": mean_success,
+            "ci_lower": success_ci[0],
+            "ci_upper": success_ci[1],
+            "ci_level": ci_level
+        },
+        "stepwise_accuracy": {
+            "mean": mean_stepwise,
+            "ci_lower": stepwise_ci[0],
+            "ci_upper": stepwise_ci[1],
+            "ci_level": ci_level
+        },
+        "kendall_tau": {
+            "mean": mean_kendall,
+            "ci_lower": kendall_ci[0],
+            "ci_upper": kendall_ci[1],
+            "ci_level": ci_level
+        },
+        "candidate_evals": {
+            "mean": mean_evals,
+            "ci_lower": evals_ci[0],
+            "ci_upper": evals_ci[1],
+            "ci_level": ci_level
+        },
         "sec": dt,
         "sec_per_trial": dt / trials,
-        "memory_usage_mb": memory_usage_mb()
+        "memory_usage_mb": memory_usage_mb(),
+        "n_trials": trials
     }
 
 def validate_parameters(n: int, T: int, p0: float, q01: float, q10: float, 
@@ -346,7 +410,8 @@ def run_mc(n: int = 100, T: int = 10, p0: float = 0.8, q01: float = 0.06, q10: f
            eps_list: List[float] = (0.0, 0.2, 0.4, 0.6, 0.8, 1.0), trials: int = 50, 
            device: Optional[str] = None, seed: int = 123, bitpack: bool = True, 
            compile_greedy: bool = False, verbose: bool = True, 
-           save_state: bool = False, dist_mode: str = "noisy") -> List[Dict[str, Any]]:
+           save_state: bool = False, dist_mode: str = "noisy", 
+           ci_level: float = 0.95) -> List[Dict[str, Any]]:
     """Run Monte Carlo simulation for greedy reordering with multiple distance modes."""
     # Validate parameters
     validate_parameters(n, T, p0, q01, q10, eps_list, trials)
@@ -388,13 +453,17 @@ def run_mc(n: int = 100, T: int = 10, p0: float = 0.8, q01: float = 0.06, q10: f
             else:
                 return _one_trial(eps)
         
-        stats = run_trials_for_eps(trials, trial_func, eps, dist_mode, verbose)
+        stats = run_trials_for_eps(trials, trial_func, eps, dist_mode, verbose, ci_level)
         results.append(stats)
         
         if verbose:
-            logger.info(f"Dist={dist_mode}, Eps={eps:.1f}: Success={stats['full_order_success_rate']:.3f}, "
-                       f"StepAcc={stats['mean_stepwise_accuracy']:.3f}, "
-                       f"Kendall={stats['mean_kendall_tau']:.3f}, "
+            success = stats['full_order_success_rate']
+            stepwise = stats['stepwise_accuracy']
+            kendall = stats['kendall_tau']
+            logger.info(f"Dist={dist_mode}, Eps={eps:.1f}: Success={success['mean']:.3f} "
+                       f"[{success['ci_lower']:.3f}, {success['ci_upper']:.3f}], "
+                       f"StepAcc={stepwise['mean']:.3f} [{stepwise['ci_lower']:.3f}, {stepwise['ci_upper']:.3f}], "
+                       f"Kendall={kendall['mean']:.3f} [{kendall['ci_lower']:.3f}, {kendall['ci_upper']:.3f}], "
                        f"Time={stats['sec_per_trial']:.3f}s/trial")
     
     if save_state:
@@ -422,6 +491,7 @@ def main():
                     choices=["noisy", "hamming", "edgecount"],
                     help="distance mode for greedy selection")
     ap.add_argument("--trials", type=int, default=50, help="Number of trials per epsilon")
+    ap.add_argument("--ci-level", type=float, default=0.95, help="Confidence level for bootstrap CIs (0.0-1.0)")
     ap.add_argument("--device", type=str, default=None,
                     help="force device: cuda|mps|cpu (default: auto)")
     ap.add_argument("--no-bitpack", action="store_true", help="disable uint8 bitpacking")
@@ -439,7 +509,8 @@ def main():
                         eps_list=eps_list, trials=args.trials, device=args.device,
                         seed=args.seed, bitpack=not args.no_bitpack, 
                         compile_greedy=args.compile, verbose=not args.quiet,
-                        save_state=args.save_state, dist_mode=args.dist)
+                        save_state=args.save_state, dist_mode=args.dist,
+                        ci_level=args.ci_level)
         
         if args.output:
             import json
